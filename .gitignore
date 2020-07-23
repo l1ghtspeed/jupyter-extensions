@@ -89,3 +89,6 @@ __pycache__
 
 # macOS Folder Settings
 *.DS_Store
+
+# JSON secrets
+*.secrets.json
