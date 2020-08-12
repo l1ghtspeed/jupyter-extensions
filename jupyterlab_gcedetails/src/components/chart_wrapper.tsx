@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { AreaChart, Area, Tooltip, CartesianGrid, YAxis } from 'recharts';
+import { VictoryArea } from 'victory';
 
 interface ChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +38,10 @@ export function AreaChartWrapper(props: ChartProps) {
     cartesianGridProps,
     yAxisProps,
   } = props;
+  const victoryData = [];
+  for (let i = 0; i < data.length; i++) {
+    victoryData.push({ x: i, y: data[i][dataKey] });
+  }
   return (
     <div className={STYLES.chartContainer}>
       <h1 className={titleClass}>{`${title} - ${
@@ -48,6 +53,7 @@ export function AreaChartWrapper(props: ChartProps) {
         <CartesianGrid {...cartesianGridProps} />
         <YAxis {...yAxisProps} />
       </AreaChart>
+      <VictoryArea data={victoryData} />
     </div>
   );
 }

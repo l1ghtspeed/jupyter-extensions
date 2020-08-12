@@ -40,7 +40,8 @@
     "csstips": "^1.2.0",
     "gcp_jupyterlab_shared": "^1.0.5",
     "recharts": "^1.8.5",
-    "typestyle": "^2.1.0"
+    "typestyle": "^2.1.0",
+    "victory": "^35.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
