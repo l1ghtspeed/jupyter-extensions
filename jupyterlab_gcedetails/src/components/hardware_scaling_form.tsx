@@ -43,7 +43,6 @@ import {
 import {
   optionToMachineType,
   machineTypeToOption,
-  MachineTypeConfiguration,
 } from '../data/machine_types';
 import { ActionBar } from './action_bar';
 import { PriceService } from '../service/price_service';
@@ -77,6 +76,7 @@ export const FORM_STYLES = stylesheet({
 });
 
 const N1_MACHINE_PREFIX = 'n1-';
+const GPU_INCOMPATIBLE_FRAMEWORKS = ['R:3', 'NumPy/SciPy/scikit-learn'];
 const GPU_RESTRICTION_MESSAGE = `Based on the zone, framework, and machine type of the instance, 
 the available GPU types and the minimum number of GPUs that can be selected may vary. `;
 const GPU_RESTRICTION_LINK = 'https://cloud.google.com/compute/docs/gpus';
@@ -86,7 +86,6 @@ the NVIDIA GPU driver will be installed automatically on the next startup.`;
 export class HardwareScalingForm extends React.Component<Props, State> {
   private gpuTypeOptions: Option[];
   private oldConfiguration: HardwareConfiguration;
-  private machineTypesOptions: MachineTypeConfiguration[];
   private oldConfigurationPrice: number | undefined;
 
   constructor(props: Props) {
@@ -108,7 +107,6 @@ export class HardwareScalingForm extends React.Component<Props, State> {
       props.details.acceleratorTypes,
       props.details.instance.cpuPlatform
     );
-    this.machineTypesOptions = props.details.machineTypes;
 
     this.getOldConfigurationPrice();
   }
@@ -119,7 +117,12 @@ export class HardwareScalingForm extends React.Component<Props, State> {
    * Currently only N1 general-purpose machines support GPUs: https://cloud.google.com/compute/docs/gpus#restrictions
    */
   private canAttachGpu(machineTypeName: string): boolean {
-    return machineTypeName.startsWith(N1_MACHINE_PREFIX);
+    const { framework } = this.props.details.instance.attributes;
+    const isValidFramework = !GPU_INCOMPATIBLE_FRAMEWORKS.some(
+      incompatibleFramework => framework.startsWith(incompatibleFramework)
+    );
+    const isValidMachineType = machineTypeName.startsWith(N1_MACHINE_PREFIX);
+    return isValidFramework && isValidMachineType;
   }
 
   private gpuRestrictionMessage() {
@@ -173,11 +176,19 @@ export class HardwareScalingForm extends React.Component<Props, State> {
   }
 
   private onMachineTypeChange(newMachineType: Option) {
-    const canAttachGpu = this.canAttachGpu(newMachineType.value as string);
+    const attachGpu =
+      this.state.configuration.attachGpu &&
+      this.canAttachGpu(newMachineType.value as string);
     const configuration = {
       ...this.state.configuration,
       machineType: optionToMachineType(newMachineType),
-      attachGpu: this.state.configuration.attachGpu && canAttachGpu,
+      attachGpu,
+      gpuType: attachGpu
+        ? this.state.configuration.gpuType
+        : NO_ACCELERATOR_TYPE,
+      gpuCount: attachGpu
+        ? this.state.configuration.gpuType
+        : NO_ACCELERATOR_COUNT,
     };
     this.setState({ configuration });
     this.updatePricingEstimation(configuration);
@@ -226,8 +237,8 @@ export class HardwareScalingForm extends React.Component<Props, State> {
     return (
       <div>
         <span className={STYLES.subheading}>Pricing Estimation:</span>
-        <div className={STYLES.paragraph}>
-          {`Your updated instance will cost an estimated
+        <div id="pricing-information" className={STYLES.paragraph}>
+          {`Your updated instance will cost an estimated 
           $${newPrice.toFixed(2)} monthly, an estimated 
           ${priceDifference < 0 ? 'decrease' : 'increase'} of 
           $${Math.abs(priceDifference).toFixed(2)} from your 
@@ -238,7 +249,7 @@ export class HardwareScalingForm extends React.Component<Props, State> {
   }
 
   render() {
-    const { onDialogClose } = this.props;
+    const { onDialogClose, details } = this.props;
     const {
       configuration,
       gpuCountOptions,
@@ -264,7 +275,7 @@ export class HardwareScalingForm extends React.Component<Props, State> {
           <span className={STYLES.subheading}>Machine Configuration</span>
           <NestedSelect
             label="Machine type"
-            nestedOptionsList={this.machineTypesOptions.map(machineType => ({
+            nestedOptionsList={details.machineTypes.map(machineType => ({
               header: machineType.base,
               options: machineType.configurations,
             }))}

@@ -1,6 +1,7 @@
 import React from 'react';
 import QueryTextEditor, {
   QUERY_DATA_TYPE,
+  QueryResult,
 } from '../query_text_editor/query_text_editor';
 import QueryResults from '../query_text_editor/query_editor_results';
 import {
@@ -20,8 +21,10 @@ const localStyles = stylesheet({
   },
 });
 import QueryResultsManager from '../../../utils/QueryResultsManager';
+import { connect } from 'react-redux';
 
 interface QueryEditorTabProps {
+  queries: { [key: string]: QueryResult };
   isVisible: boolean;
   queryId?: string;
   iniQuery?: string;
@@ -56,4 +59,8 @@ class QueryEditorTab extends React.Component<QueryEditorTabProps, {}> {
   }
 }
 
-export default QueryEditorTab;
+const mapStateToProps = state => {
+  return { queries: state.queryEditorTab.queries };
+};
+
+export default connect(mapStateToProps)(QueryEditorTab);
